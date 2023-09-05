@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ComWrappersTest;
+namespace ComWrappersTest.Source;
 
 public class Constants
 {
@@ -90,67 +90,67 @@ public class Constants
         public double date;
 
         [FieldOffset(8)]
-        public IntPtr bstrVal;
+        public nint bstrVal;
 
         [FieldOffset(8)]
-        public IntPtr punkVal;
+        public nint punkVal;
 
         [FieldOffset(8)]
-        public IntPtr pdispVal;
+        public nint pdispVal;
 
         [FieldOffset(8)]
-        public IntPtr parray;
+        public nint parray;
 
         [FieldOffset(8)]
-        public IntPtr pbVal;
+        public nint pbVal;
 
         [FieldOffset(8)]
-        public IntPtr piVal;
+        public nint piVal;
 
         [FieldOffset(8)]
-        public IntPtr plVal;
+        public nint plVal;
 
         [FieldOffset(8)]
-        public IntPtr pllVal;
+        public nint pllVal;
 
         [FieldOffset(8)]
-        public IntPtr pfltVal;
+        public nint pfltVal;
 
         [FieldOffset(8)]
-        public IntPtr pdblVal;
+        public nint pdblVal;
 
         [FieldOffset(8)]
-        public IntPtr pboolVal;
+        public nint pboolVal;
 
         [FieldOffset(8)]
-        public IntPtr __OBSOLETE__VARIANT_PBOOL;
+        public nint __OBSOLETE__VARIANT_PBOOL;
 
         [FieldOffset(8)]
-        public IntPtr pscode;
+        public nint pscode;
 
         [FieldOffset(8)]
-        public IntPtr pcyVal;
+        public nint pcyVal;
 
         [FieldOffset(8)]
-        public IntPtr pdate;
+        public nint pdate;
 
         [FieldOffset(8)]
-        public IntPtr pbstrVal;
+        public nint pbstrVal;
 
         [FieldOffset(8)]
-        public IntPtr ppunkVal;
+        public nint ppunkVal;
 
         [FieldOffset(8)]
-        public IntPtr ppdispVal;
+        public nint ppdispVal;
 
         [FieldOffset(8)]
-        public IntPtr pparray;
+        public nint pparray;
 
         [FieldOffset(8)]
-        public IntPtr pvarVal;
+        public nint pvarVal;
 
         [FieldOffset(8)]
-        public IntPtr byref;
+        public nint byref;
 
         [FieldOffset(8)]
         public sbyte cVal;
