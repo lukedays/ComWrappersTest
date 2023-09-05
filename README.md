@@ -1,3 +1,3 @@
 # ComWrappersTest
 
-Test of the ComWrappers API with WScript.Shell Run function.
+Test of the ComWrappers API with WScript.Shell.

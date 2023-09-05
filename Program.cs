@@ -1,20 +1,31 @@
 ﻿using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using static ComWrappersTest.Constants;
 
 namespace ComWrappersTest
 {
-    internal class Program
+    public class Program
     {
         public static void Main()
         {
-            // The CLSID for WScript.Shell
+            // This is an adaptation of https://github.com/dotnet/samples/tree/main/core/interop/comwrappers/Tutorial
+            // Intro to COM https://learn.microsoft.com/en-us/windows/win32/com/com-technical-overview
+
+            // The CLSID for WScript.Shell (COMView.exe -> CLSID table)
             var clsid = new Guid("{F935DC22-1CF0-11D0-ADB9-00C04FD58A0B}");
 
-            // The IID for IWshShell
+            // The IID for IWshShell (COMView.exe -> TypeLib -> IWshShell interface)
             var iid = IWshShell.IID;
 
-            var shell = ActivateClass<IWshShell>(clsid, iid);
+            // COMView.exe -> CLSID table -> Type column -> InProcServer32
+            var server = CLSCTX.CLSCTX_INPROC_SERVER;
+
+            // Create pointer to COM object with wrapper. Technically, a RCW
+            var shell = ActivateClass<IWshShell>(clsid, iid, server);
+
+            // Call COM functions. Since it's very tedious, we can use source generators to have more functions.
+            shell.Run("calc.exe", 1, true);
 
             Console.WriteLine(shell.ExpandEnvironmentStrings("%USERPROFILE%"));
         }
@@ -23,17 +34,17 @@ namespace ComWrappersTest
         static extern int CoCreateInstance(
             ref Guid rclsid,
             IntPtr pUnkOuter,
-            int dwClsContext,
+            uint dwClsContext,
             ref Guid riid,
             out IntPtr ppv
         );
 
-        public static I ActivateClass<I>(Guid clsid, Guid iid)
+        public static I ActivateClass<I>(Guid clsid, Guid iid, CLSCTX server)
         {
             int hr = CoCreateInstance(
                 ref clsid,
                 IntPtr.Zero,
-                1, /*CLSCTX_INPROC_SERVER*/
+                (uint)server,
                 ref iid,
                 out IntPtr obj
             );
@@ -48,73 +59,21 @@ namespace ComWrappersTest
 
     interface IWshShell
     {
-        public static Guid IID = new("41904400-BE18-11D3-A28B-00104BD35090");
+        public static Guid IID = new("F935DC21-1CF0-11D0-ADB9-00C04FD58A0B");
 
+        int Run(string Command, int WindowStyle, bool WaitOnReturn);
         string ExpandEnvironmentStrings(string Src);
     }
 
-    sealed unsafe class MyComWrappers : ComWrappers
+    unsafe class MyComWrappers : ComWrappers
     {
-        //static readonly IntPtr s_IRunVTable;
-        //static readonly ComInterfaceEntry* s_DemoImplDefinition;
-        //static readonly int s_DemoImplDefinitionLen;
-
-        //static MyComWrappers()
-        //{
-        //    //// Get system provided IUnknown implementation.
-        //    GetIUnknownImpl(out IntPtr fpQueryInterface, out IntPtr fpAddRef, out IntPtr fpRelease);
-
-        //    //////
-        //    ////// Construct VTables for supported interfaces
-        //    //////
-        //    {
-        //        int tableCount = 10;
-        //        int idx = 0;
-        //        var vtable = (IntPtr*)
-        //            RuntimeHelpers.AllocateTypeAssociatedMemory(
-        //                typeof(MyComWrappers),
-        //                IntPtr.Size * tableCount
-        //            );
-        //        vtable[idx++] = fpQueryInterface;
-        //        vtable[idx++] = fpAddRef;
-        //        vtable[idx++] = fpRelease;
-        //        vtable[idx++] = IntPtr.Zero;
-        //        vtable[idx++] = IntPtr.Zero;
-        //        vtable[idx++] = IntPtr.Zero;
-        //        vtable[idx++] = IntPtr.Zero;
-        //        vtable[idx++] = IntPtr.Zero;
-        //        vtable[idx++] = IntPtr.Zero;
-        //        vtable[idx++] = (IntPtr)
-        //            (delegate* unmanaged<IntPtr, IntPtr, int>)&ABI.IRunTypeManagedWrapper.Run;
-        //        Debug.Assert(tableCount == idx);
-        //        s_IRunVTable = (IntPtr)vtable;
-        //    }
-
-        //    //////
-        //    ////// Construct entries for supported managed types
-        //    //////
-        //    {
-        //        s_DemoImplDefinitionLen = 1;
-        //        int idx = 0;
-        //        var entries = (ComInterfaceEntry*)
-        //            RuntimeHelpers.AllocateTypeAssociatedMemory(
-        //                typeof(MyComWrappers),
-        //                sizeof(ComInterfaceEntry) * s_DemoImplDefinitionLen
-        //            );
-        //        entries[idx].IID = IWshShell.IID_IRunType;
-        //        entries[idx++].Vtable = s_IRunVTable;
-        //        Debug.Assert(s_DemoImplDefinitionLen == idx);
-        //        s_DemoImplDefinition = entries;
-        //    }
-        //}
-
-
         protected override unsafe ComInterfaceEntry* ComputeVtables(
             object obj,
             CreateComInterfaceFlags flags,
             out int count
         )
         {
+            // This is only used for CCWs
             throw new NotImplementedException();
         }
 
@@ -122,8 +81,7 @@ namespace ComWrappersTest
         {
             Debug.Assert(flags.HasFlag(CreateObjectFlags.UniqueInstance));
 
-            return ABI.NativeStaticWrapper.CreateIfSupported(externalComObject)
-                ?? throw new NotSupportedException();
+            return new ABI.NativeStaticWrapper(externalComObject);
         }
 
         protected override void ReleaseObjects(IEnumerable objects)
@@ -134,30 +92,22 @@ namespace ComWrappersTest
 
     namespace ABI
     {
-        internal enum HRESULT : int
-        {
-            S_OK = 0
-        }
-
-        internal class NativeStaticWrapper : IWshShell, IDisposable
+        public unsafe class NativeStaticWrapper : IWshShell, IDisposable
         {
             bool _isDisposed = false;
 
-            public IntPtr Inst { get; init; }
+            IntPtr _interfacePtr;
 
-            public static NativeStaticWrapper? CreateIfSupported(IntPtr ptr)
+            public NativeStaticWrapper(IntPtr ptr)
             {
-                int hr = Marshal.QueryInterface(ptr, ref IWshShell.IID, out IntPtr Inst);
+                int hr = Marshal.QueryInterface(ptr, ref IWshShell.IID, out IntPtr interfacePtr);
                 if (hr != (int)HRESULT.S_OK)
                 {
-                    return default;
+                    throw new NotSupportedException();
                 }
 
-                return new NativeStaticWrapper() { Inst = Inst };
+                _interfacePtr = interfacePtr;
             }
-
-            public string ExpandEnvironmentStrings(string Src) =>
-                INativeWrapper.ExpandEnvironmentStrings(Inst, Src);
 
             ~NativeStaticWrapper()
             {
@@ -175,25 +125,58 @@ namespace ComWrappersTest
                 if (_isDisposed)
                     return;
 
-                Marshal.Release(Inst);
+                Marshal.Release(_interfacePtr);
 
                 _isDisposed = true;
             }
-        }
 
-        [DynamicInterfaceCastableImplementation]
-        internal unsafe interface INativeWrapper : IWshShell
-        {
-            public static string ExpandEnvironmentStrings(IntPtr inst, string Src)
+            // The slot and parameters for the functions were found using COMView.exe and the C/C++ signature
+            // Starting from 0 on the interface view, we can find the function slot numbers
+            public int Run(string Command, int WindowStyle, bool WaitOnReturn)
+            {
+                var func = (delegate* unmanaged<IntPtr, IntPtr, IntPtr, IntPtr, int*, void>)(
+                    *(
+                        *(void***)_interfacePtr + 9 /* IWshShell.Run slot */
+                    )
+                );
+
+                var arg1 = new VARIANT { vt = VARENUM.VT_I4, lVal = WindowStyle };
+
+                var arg2 = new VARIANT
+                {
+                    vt = VARENUM.VT_BOOL,
+                    boolVal = WaitOnReturn ? VARIANT_BOOL.VARIANT_TRUE : VARIANT_BOOL.VARIANT_FALSE
+                };
+
+                int retPtr;
+                func(
+                    _interfacePtr,
+                    Marshal.StringToBSTR(Command),
+                    VariantToPtr(arg1),
+                    VariantToPtr(arg2),
+                    &retPtr
+                );
+
+                return retPtr;
+            }
+
+            static IntPtr VariantToPtr(VARIANT str)
+            {
+                var ptr = Marshal.AllocHGlobal(Marshal.SizeOf(str));
+                Marshal.StructureToPtr(str, ptr, false);
+                return ptr;
+            }
+
+            public string ExpandEnvironmentStrings(string Src)
             {
                 var func = (delegate* unmanaged<IntPtr, IntPtr, IntPtr*, void>)(
                     *(
-                        *(void***)inst + 12 /* IWshShell.ExpandEnvironmentStrings slot */
+                        *(void***)_interfacePtr + 12 /* IWshShell.ExpandEnvironmentStrings slot */
                     )
                 );
 
                 IntPtr retPtr;
-                func(inst, Marshal.StringToBSTR(Src), &retPtr);
+                func(_interfacePtr, Marshal.StringToBSTR(Src), &retPtr);
                 var ret = Marshal.PtrToStringBSTR(retPtr);
 
                 return ret;
