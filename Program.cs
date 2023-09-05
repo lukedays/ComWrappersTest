@@ -12,8 +12,8 @@ namespace ComWrappersTest
             // The CLSID for WScript.Shell
             var clsid = new Guid("{F935DC22-1CF0-11D0-ADB9-00C04FD58A0B}");
 
-            // The IID for IDispatch
-            var iid = new Guid("{00020400-0000-0000-C000-000000000046}");
+            // The IID for IWshShell
+            var iid = IWshShell.IID_IRunType;
 
             var cw = new MyComWrappers();
 
@@ -317,13 +317,20 @@ namespace ComWrappersTest
         {
             public static int Run(IntPtr inst, string Command)
             {
-                var func = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int, bool, int>)(
+                //var func = (delegate* unmanaged<IntPtr, IntPtr, int>)(
+                //    *(
+                //        *(void***)inst + 9 /* IWshShell.Run slot */
+                //    )
+                //);
+
+                var func = (delegate* unmanaged<IntPtr, IntPtr, int, bool, int>)(
                     *(
                         *(void***)inst + 9 /* IWshShell.Run slot */
                     )
                 );
 
                 // ACCESS VIOLATION ERROR HERE
+                //var ret = func(inst, Marshal.StringToBSTR(Command));
                 var ret = func(inst, Marshal.StringToBSTR(Command), 1, true);
 
                 return 1;
