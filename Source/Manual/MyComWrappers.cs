@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace ComWrappersTest.Source;
+namespace ComWrappersTest.Source.Manual;
 
 unsafe class MyComWrappers : ComWrappers
 {

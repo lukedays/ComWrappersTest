@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using static ComWrappersTest.Source.Constants;
 
-namespace ComWrappersTest.Source;
+namespace ComWrappersTest.Source.Manual;
 
 public unsafe class NativeStaticWrapper : IWshShell, IDisposable
 {
@@ -11,7 +11,8 @@ public unsafe class NativeStaticWrapper : IWshShell, IDisposable
 
     public NativeStaticWrapper(nint ptr)
     {
-        int hr = Marshal.QueryInterface(ptr, ref IWshShell.IID, out nint interfacePtr);
+        var guid = typeof(IWshShell).GUID;
+        int hr = Marshal.QueryInterface(ptr, ref guid, out nint interfacePtr);
         if (hr != (int)HRESULT.S_OK)
         {
             throw new NotSupportedException();
@@ -80,14 +81,14 @@ public unsafe class NativeStaticWrapper : IWshShell, IDisposable
 
     public string ExpandEnvironmentStrings(string Src)
     {
-        var func = (delegate* unmanaged<nint, nint, nint*, void>)(
+        var func = (delegate* unmanaged<void*, nint, nint*, void>)(
             *(
                 *(void***)_interfacePtr + 12 /* IWshShell.ExpandEnvironmentStrings slot */
             )
         );
 
         nint retPtr;
-        func(_interfacePtr, Marshal.StringToBSTR(Src), &retPtr);
+        func((void*)_interfacePtr, Marshal.StringToBSTR(Src), &retPtr);
         var ret = Marshal.PtrToStringBSTR(retPtr);
 
         return ret;
