@@ -20,8 +20,8 @@ public partial interface IWshShell
 
     int Run( // Slot 9
         [MarshalAs(UnmanagedType.BStr)] string Command,
-        [MarshalUsing(typeof(VariantMarshaller)), Optional] int WindowStyle,
-        [MarshalUsing(typeof(VariantMarshaller)), Optional] bool WaitOnReturn
+        [MarshalUsing(typeof(IntToVariant)), Optional] int WindowStyle,
+        [MarshalUsing(typeof(BoolToVariant)), Optional] bool WaitOnReturn
     );
 
     void Popup(); // Slot 10

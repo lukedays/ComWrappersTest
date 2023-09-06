@@ -72,13 +72,6 @@ public unsafe class NativeStaticWrapper : IWshShell, IDisposable
         return retPtr;
     }
 
-    static nint VariantToPtr(VARIANT str)
-    {
-        var ptr = Marshal.AllocHGlobal(Marshal.SizeOf(str));
-        Marshal.StructureToPtr(str, ptr, false);
-        return ptr;
-    }
-
     public string ExpandEnvironmentStrings(string Src)
     {
         var func = (delegate* unmanaged<void*, nint, nint*, void>)(

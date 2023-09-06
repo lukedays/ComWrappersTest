@@ -4,6 +4,13 @@ namespace ComWrappersTest.Source;
 
 public class Constants
 {
+    public static nint VariantToPtr(VARIANT str)
+    {
+        var ptr = Marshal.AllocHGlobal(Marshal.SizeOf(str));
+        Marshal.StructureToPtr(str, ptr, false);
+        return ptr;
+    }
+
     public enum HRESULT : int
     {
         S_OK = 0
