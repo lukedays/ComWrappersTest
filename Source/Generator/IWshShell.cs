@@ -8,7 +8,7 @@ namespace ComWrappersTest.Source.Generator;
 public partial interface IWshShell
 {
     // These entries need to be in the exact VTable order
-    // Count starts after the IUnknown methods (QueryInterface, AddRef, Release) -> (0, 1, 2)
+    // Count starts after the IUnknown methods - QueryInterface (0), AddRef (1), Release (2)
     // The order is the same as displayed in COMView.exe
     void GetTypeInfoCount(); // Slot 3
     void GetTypeInfo(); // Slot 4
